@@ -5,3 +5,4 @@ supabase
 pydantic
 loguru
 pydantic_settings
+yfinance
