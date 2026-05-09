@@ -132,6 +132,7 @@ def compute_positions(group_id: str) -> Dict:
                 "share" : round((value / total_invested_value) * 100, 2)
             })
     sector_allocation.sort(key= lambda x: x["share"], reverse=True)
+    historical_allocations.sort(key=lambda x: x["sold_on"], reverse=True)
     return {
         "unrealized_pnl"   : round(total_unrealized_pnl, 2),
         "realized_pnl"     : realized_pnl,
