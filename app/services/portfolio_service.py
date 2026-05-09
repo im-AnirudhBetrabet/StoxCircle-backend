@@ -5,12 +5,16 @@ from app.core.db import handle_response
 from app.services.price_service import get_current_price
 
 def get_pool(group_id: str) -> dict:
-    res = supabase.table("group_pools").select("*").eq("group_id", group_id).single().execute()
+    res = supabase.table("group_pools").select("*").eq("group_id", group_id).maybe_single().execute()
 
     if not res.data:
-         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pool not found")
+         return {
+             "group_id"    : group_id,
+             "cash_balance": 0,
+             "total_units" : 0
+         }
 
-    return res.data or []
+    return res.data
 
 def get_recent_trade_activity(group_id: str):
     res = supabase.rpc("get_recent_trade_activity", {
@@ -21,9 +25,8 @@ def get_recent_trade_activity(group_id: str):
     return recent_trade_data
 
 def get_user_units(group_id: str, user_id: str) -> float:
-    res = supabase.table("user_units").select("units").eq("group_id", group_id).eq("user_id", user_id).single().execute()
-
-    if not res.data:
+    res = supabase.table("user_units").select("units").eq("group_id", group_id).eq("user_id", user_id).maybe_single().execute()
+    if res is None or not res.data:
         return 0.0
 
     return float(res.data["units"])
