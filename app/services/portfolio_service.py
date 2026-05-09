@@ -49,6 +49,20 @@ def compute_positions(group_id: str) -> Dict:
     open_trades   = [trade for trade in all_trades if trade['status'] == "OPEN"]
     closed_trades = [trade for trade in all_trades if trade['status'] == "CLOSED"]
 
+    historical_allocations = []
+
+
+    for c in closed_trades:
+        historical_allocations.append({
+            "ticker"      : c['ticker'],
+            'buy_price'   : c['buy_price'],
+            "sell_price"  : c['sell_price'],
+            "pnl"         : c['realized_pnl'] + c['other_pnl'],
+            "purchased_on": c['created_at'],
+            "sold_on"     : c['closed_at'],
+            "quantity"    : c['quantity']
+        })
+
     realized_pnl = round(float(sum(t['realized_pnl'] for t in closed_trades)), 2) or 0.0
 
     aggregate: Dict[str, dict] = {}
@@ -123,7 +137,8 @@ def compute_positions(group_id: str) -> Dict:
         "realized_pnl"     : realized_pnl,
         "invested_value"   : round(total_invested_value, 2),
         "positions"        : positions,
-        "sector_allocation": sector_allocation
+        "sector_allocation": sector_allocation,
+        "closed_trades"    : historical_allocations
     }
 
 def compute_nav(pool: dict, invested_value:float) -> float:
