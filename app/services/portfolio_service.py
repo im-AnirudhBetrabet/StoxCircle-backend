@@ -70,12 +70,13 @@ def compute_positions(group_id: str) -> Dict:
                 "buy_date": buy_date
             }
 
-            aggregate[ticker]["quantity"] += qty
-            aggregate[ticker]["cost"]     += qty * price
+        aggregate[ticker]["quantity"] += qty
+        aggregate[ticker]["cost"]     += qty * price
 
-    total_invested_value = 0.0
-    total_unrealized_pnl = 0.0
-    positions            = []
+    total_invested_value         = 0.0
+    total_unrealized_pnl         = 0.0
+    positions                    = []
+    sector_map: Dict[str, float] = {}
 
     for ticker, data in aggregate.items():
         qty  = data["quantity"]
@@ -87,14 +88,14 @@ def compute_positions(group_id: str) -> Dict:
         if qty == 0:
             continue
 
-        avg_price     = cost / qty
-        current_price = get_current_price(ticker)
-
-        market_value = current_price * qty
-        unrealized   = (current_price - avg_price) * qty
+        avg_price             = cost / qty
+        current_price, sector = get_current_price(ticker)
+        market_value          = current_price * qty
+        unrealized            = (current_price - avg_price) * qty
 
         total_invested_value += market_value
         total_unrealized_pnl += unrealized
+        sector_map[sector]    = sector_map.get(sector, 0.0) + market_value
 
         positions.append({
             "unrealized_pnl": round(unrealized, 2),
@@ -104,14 +105,25 @@ def compute_positions(group_id: str) -> Dict:
             "quantity"      : round(qty, 4),
             "ticker"        : ticker,
             "trade_id"      : id,
-            "buy_date"      : buy_date
+            "buy_date"      : buy_date,
+            "sector"        : sector
         })
 
+    sector_allocation = []
+    if total_invested_value > 0:
+        for sector, value in sector_map.items():
+            sector_allocation.append({
+                "sector": sector,
+                "value" : round(value, 2),
+                "share" : round((value / total_invested_value) * 100, 2)
+            })
+    sector_allocation.sort(key= lambda x: x["share"], reverse=True)
     return {
-        "unrealized_pnl": round(total_unrealized_pnl, 2),
-        "realized_pnl"  : realized_pnl,
-        "invested_value": round(total_invested_value, 2),
-        "positions"     : positions
+        "unrealized_pnl"   : round(total_unrealized_pnl, 2),
+        "realized_pnl"     : realized_pnl,
+        "invested_value"   : round(total_invested_value, 2),
+        "positions"        : positions,
+        "sector_allocation": sector_allocation
     }
 
 def compute_nav(pool: dict, invested_value:float) -> float:
